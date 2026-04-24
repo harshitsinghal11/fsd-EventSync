@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdminApiSession } from '@/lib/server/auth';
 import { createSupabaseClient } from '@/lib/server/supabase';
 
 type CoordinatorInput = {
@@ -24,6 +25,12 @@ type EventCreatePayload = {
  */
 export async function POST(request: Request) {
   try {
+    const authResult = await requireAdminApiSession();
+
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     let payload: EventCreatePayload;
 
     try {

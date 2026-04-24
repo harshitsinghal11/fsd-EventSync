@@ -1,16 +1,22 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
-import { CheckCircle2, Loader2, UserPlus, Trash2, Phone, User } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { type FormEvent, useState } from 'react';
+import {
+  CheckCircle2,
+  Loader2,
+  Phone,
+  Trash2,
+  User,
+  UserPlus,
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { EVENT_CATEGORY_OPTIONS } from '@/lib/event-categories';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Coordinator {
-  id: string;   // local key only — not sent to DB
+  id: string;
   name: string;
   phone: string;
 }
@@ -28,101 +34,131 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  title: '', description: '', date: '', time: '',
-  venue: '', duration: '', category: '', perks: '',
+  title: '',
+  description: '',
+  date: '',
+  time: '',
+  venue: '',
+  duration: '',
+  category: '',
+  perks: '',
   registration_link: '',
 };
 
-function newCoordinator(): Coordinator {
+const textareaClassName =
+  'w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10';
+
+const selectClassName =
+  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10';
+
+function createCoordinator(): Coordinator {
   return { id: crypto.randomUUID(), name: '', phone: '' };
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+function PanelField({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={htmlFor} className="text-sm font-semibold text-slate-700">
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
 
 export default function CreateEventPanel() {
-  const [form, setForm]               = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [coordinators, setCoordinators] = useState<Coordinator[]>([]);
-  const [loading, setLoading]         = useState(false);
-  const [success, setSuccess]         = useState(false);
-  const [warning, setWarning]         = useState<string | null>(null);
-  const [error, setError]             = useState<string | null>(null);
-
-  // ── Field helpers ──────────────────────────────────────────────────────────
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   function setField(field: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      setForm((f) => ({ ...f, [field]: e.target.value }));
+    return (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      setForm((current) => ({ ...current, [field]: event.target.value }));
       setSuccess(false);
       setError(null);
       setWarning(null);
     };
   }
 
-  // ── Coordinator helpers ────────────────────────────────────────────────────
-
   function addCoordinator() {
-    setCoordinators((prev) => [...prev, newCoordinator()]);
+    setCoordinators((current) => [...current, createCoordinator()]);
   }
 
   function updateCoordinator(id: string, field: 'name' | 'phone', value: string) {
-    setCoordinators((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)),
+    setCoordinators((current) =>
+      current.map((coordinator) =>
+        coordinator.id === id ? { ...coordinator, [field]: value } : coordinator
+      )
     );
   }
 
   function removeCoordinator(id: string) {
-    setCoordinators((prev) => prev.filter((c) => c.id !== id));
+    setCoordinators((current) => current.filter((coordinator) => coordinator.id !== id));
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(false);
     setWarning(null);
 
     try {
-      const res = await fetch('/api/admin/events', {
+      const response = await fetch('/api/admin/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
           perks: form.perks
-            ? form.perks.split(',').map((p) => p.trim()).filter(Boolean)
+            ? form.perks.split(',').map((value) => value.trim()).filter(Boolean)
             : [],
           registration_link: form.registration_link.trim() || null,
           coordinators: coordinators
-            .filter((c) => c.name.trim())
+            .filter((coordinator) => coordinator.name.trim())
             .map(({ name, phone }) => ({ name, phone })),
         }),
       });
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Failed to create event.');
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json.error ?? 'Failed to create event.');
+      }
 
-      if (json.warning) setWarning(json.warning);
+      if (json.warning) {
+        setWarning(json.warning);
+      }
 
       setSuccess(true);
       setForm(EMPTY_FORM);
       setCoordinators([]);
-    } catch (err) {
-      setError(String(err).replace('Error: ', ''));
+    } catch (submissionError) {
+      setError(String(submissionError).replace('Error: ', ''));
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
-    <div className="mx-auto w-full">
-      <p className="text-slate-500 text-sm mb-6">
-        Fill in the details below to add a new event. Add coordinators at the bottom.
-      </p>
+    <div className="mx-auto w-full max-w-6xl">
+      <div className="mb-6 rounded-[28px] border border-slate-200 bg-white/90 px-6 py-5 shadow-[0_22px_45px_-28px_rgba(15,23,42,0.28)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">Events</p>
+        <h2 className="mt-2 text-2xl font-extrabold text-slate-950">Create a new event</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-500">
+          Publish a polished listing with the details students need, plus a working registration link.
+        </p>
+      </div>
 
-      {/* Success banner */}
       <AnimatePresence>
         {success && (
           <motion.div
@@ -131,17 +167,16 @@ export default function CreateEventPanel() {
             animate={{ opacity: 1, y: 0, height: 'auto' }}
             exit={{ opacity: 0, y: -6, height: 0 }}
             transition={{ duration: 0.25 }}
-            className="overflow-hidden mb-5"
+            className="mb-5 overflow-hidden"
           >
-            <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm font-medium">
+            <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
               <CheckCircle2 size={16} className="shrink-0" />
-              Event created successfully!
+              Event created successfully.
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Warning banner (event saved but coordinators failed) */}
       <AnimatePresence>
         {warning && (
           <motion.div
@@ -150,16 +185,15 @@ export default function CreateEventPanel() {
             animate={{ opacity: 1, y: 0, height: 'auto' }}
             exit={{ opacity: 0, y: -6, height: 0 }}
             transition={{ duration: 0.25 }}
-            className="overflow-hidden mb-5"
+            className="mb-5 overflow-hidden"
           >
-            <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-xl px-4 py-3 text-sm font-medium">
-              ⚠ {warning}
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+              Coordinator sync warning: {warning}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Error banner */}
       <AnimatePresence>
         {error && (
           <motion.div
@@ -168,202 +202,224 @@ export default function CreateEventPanel() {
             animate={{ opacity: 1, y: 0, height: 'auto' }}
             exit={{ opacity: 0, y: -6, height: 0 }}
             transition={{ duration: 0.25 }}
-            className="overflow-hidden mb-5"
+            className="mb-5 overflow-hidden"
           >
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {error}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* ── Event Details Card ── */}
-          <div className="flex-1 w-full bg-transparent rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Event Details</h2>
-
-          <Field label="Title *" htmlFor="ev-title">
-            <Input
-              id="ev-title"
-              value={form.title}
-              onChange={setField('title')}
-              placeholder="e.g. Tech Hackathon 2026"
-              required
-            />
-          </Field>
-
-          <Field label="Description" htmlFor="ev-desc">
-            <textarea
-              id="ev-desc"
-              value={form.description}
-              onChange={setField('description')}
-              rows={4}
-              placeholder="Describe the event…"
-              className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Date *" htmlFor="ev-date">
-              <Input id="ev-date" type="date" value={form.date} onChange={setField('date')} required />
-            </Field>
-            <Field label="Time" htmlFor="ev-time">
-              <Input id="ev-time" type="time" value={form.time} onChange={setField('time')} />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Venue" htmlFor="ev-venue">
-              <Input id="ev-venue" value={form.venue} onChange={setField('venue')} placeholder="e.g. Main Auditorium" />
-            </Field>
-            <Field label="Duration" htmlFor="ev-duration">
-              <Input id="ev-duration" value={form.duration} onChange={setField('duration')} placeholder="e.g. 3 hours" />
-            </Field>
-          </div>
-
-          <Field label="Category" htmlFor="ev-category">
-            <select
-              id="ev-category"
-              value={form.category}
-              onChange={setField('category')}
-              className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="">Select category</option>
-              {['Technical', 'Cultural', 'Sports', 'Academic', 'Workshop', 'Other'].map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="Perks" htmlFor="ev-perks">
-            <Input
-              id="ev-perks"
-              value={form.perks}
-              onChange={setField('perks')}
-              placeholder="Comma-separated, e.g. Certificate, Cash Prize, Goodies"
-            />
-            <p className="text-xs text-slate-400 mt-1">Separate multiple perks with commas.</p>
-          </Field>
-
-          <Field label="Registration Link" htmlFor="ev-reg-link">
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium pointer-events-none select-none">URL</span>
-              <Input
-                id="ev-reg-link"
-                type="url"
-                value={form.registration_link}
-                onChange={setField('registration_link')}
-                placeholder="https://forms.google.com/..."
-                className="pl-10"
-              />
-            </div>
-            <p className="text-xs text-slate-400 mt-1">Optional — link to the registration form or portal.</p>
-          </Field>
-          </div>
-
-          {/* ── Coordinators Card ── */}
-          <div className="flex-1 w-full bg-transparent rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="flex flex-col items-start gap-6 lg:flex-row">
+          <section className="w-full flex-1 space-y-5 rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.35)] md:p-7">
             <div>
-              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Coordinators</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Optional — add one or more event coordinators.</p>
+              <h3 className="text-sm font-bold uppercase tracking-[0.24em] text-slate-700">
+                Event Details
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                This information appears on the event listing and detail page.
+              </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addCoordinator}
-              className="flex items-center gap-1.5 rounded-xl text-sm font-semibold border-primary/30 text-black"
-            >
-              <UserPlus size={14} />
-              Add Coordinator
-            </Button>
-          </div>
 
-          {/* Empty state */}
-          {coordinators.length === 0 && (
-            <div className="text-center py-6 border-2 border-dashed border-slate-100 rounded-xl">
-              <User size={22} className="mx-auto text-black mb-2" />
-              <p className="text-sm text-slate-400">No coordinators added yet.</p>
-              <button
-                type="button"
-                onClick={addCoordinator}
-                className="text-sm text-black font-semibold mt-1 hover:underline"
-              >
-                Add one
-              </button>
+            <PanelField label="Title *" htmlFor="ev-title">
+              <Input
+                id="ev-title"
+                value={form.title}
+                onChange={setField('title')}
+                placeholder="e.g. Tech Hackathon 2026"
+                required
+              />
+            </PanelField>
+
+            <PanelField label="Description" htmlFor="ev-desc">
+              <textarea
+                id="ev-desc"
+                value={form.description}
+                onChange={setField('description')}
+                rows={5}
+                placeholder="Describe the event..."
+                className={textareaClassName}
+              />
+            </PanelField>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <PanelField label="Date *" htmlFor="ev-date">
+                <Input id="ev-date" type="date" value={form.date} onChange={setField('date')} required />
+              </PanelField>
+              <PanelField label="Time" htmlFor="ev-time">
+                <Input id="ev-time" type="time" value={form.time} onChange={setField('time')} />
+              </PanelField>
             </div>
-          )}
 
-          {/* Coordinator rows */}
-          <AnimatePresence initial={false}>
-            {coordinators.map((coord, index) => (
-              <motion.div
-                key={coord.id}
-                initial={{ opacity: 0, y: -8, height: 0 }}
-                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                exit={{ opacity: 0, y: -8, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <PanelField label="Venue" htmlFor="ev-venue">
+                <Input
+                  id="ev-venue"
+                  value={form.venue}
+                  onChange={setField('venue')}
+                  placeholder="e.g. Main Auditorium"
+                />
+              </PanelField>
+              <PanelField label="Duration" htmlFor="ev-duration">
+                <Input
+                  id="ev-duration"
+                  value={form.duration}
+                  onChange={setField('duration')}
+                  placeholder="e.g. 3 hours"
+                />
+              </PanelField>
+            </div>
+
+            <PanelField label="Category" htmlFor="ev-category">
+              <select
+                id="ev-category"
+                value={form.category}
+                onChange={setField('category')}
+                className={selectClassName}
               >
-                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                  {/* Index badge */}
-                  <div className="w-6 h-6 bg-ehitle rounded-full flex items-center justify-center text-primary text-xs font-bold shrink-0 mt-2">
-                    {index + 1}
-                  </div>
+                <option value="">Select category</option>
+                {EVENT_CATEGORY_OPTIONS.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </PanelField>
 
-                  {/* Fields */}
-                  <div className="flex-1 grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold text-slate-600">
-                        <User size={11} className="inline mr-1" />Name *
-                      </Label>
-                      <Input
-                        value={coord.name}
-                        onChange={(e) => updateCoordinator(coord.id, 'name', e.target.value)}
-                        placeholder="Full name"
-                        className="h-9 text-sm rounded-lg"
-                        required={coordinators.some((c) => c.name.trim())}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold text-slate-600">
-                        <Phone size={11} className="inline mr-1" />Phone
-                      </Label>
-                      <Input
-                        value={coord.phone}
-                        onChange={(e) => updateCoordinator(coord.id, 'phone', e.target.value)}
-                        placeholder="+91 98765 43210"
-                        className="h-9 text-sm rounded-lg"
-                      />
-                    </div>
-                  </div>
+            <PanelField label="Perks" htmlFor="ev-perks">
+              <Input
+                id="ev-perks"
+                value={form.perks}
+                onChange={setField('perks')}
+                placeholder="Comma-separated, e.g. Certificate, Cash Prize, Goodies"
+              />
+              <p className="text-xs text-slate-400">Separate multiple perks with commas.</p>
+            </PanelField>
 
-                  {/* Remove */}
-                  <button
-                    type="button"
-                    onClick={() => removeCoordinator(coord.id)}
-                    className="mt-2 p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                    title="Remove coordinator"
+            <PanelField label="Registration Link" htmlFor="ev-reg-link">
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 select-none text-xs font-medium text-slate-400">
+                  URL
+                </span>
+                <Input
+                  id="ev-reg-link"
+                  type="url"
+                  value={form.registration_link}
+                  onChange={setField('registration_link')}
+                  placeholder="https://forms.google.com/..."
+                  className="pl-10"
+                />
+              </div>
+              <p className="text-xs text-slate-400">
+                Optional - link to the registration form or portal.
+              </p>
+            </PanelField>
+          </section>
+
+          <section className="w-full flex-1 space-y-4 rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.35)] md:p-7">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-[0.24em] text-slate-700">
+                  Coordinators
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Optional contacts students can reach for questions.
+                </p>
+              </div>
+
+              <Button type="button" variant="outline" size="sm" onClick={addCoordinator}>
+                <UserPlus size={14} />
+                Add Coordinator
+              </Button>
+            </div>
+
+            {coordinators.length === 0 ? (
+              <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/80 py-8 text-center">
+                <User size={22} className="mx-auto mb-2 text-slate-700" />
+                <p className="text-sm text-slate-400">No coordinators added yet.</p>
+                <button
+                  type="button"
+                  onClick={addCoordinator}
+                  className="mt-1 text-sm font-semibold text-blue-600 hover:underline"
+                >
+                  Add one
+                </button>
+              </div>
+            ) : (
+              <AnimatePresence initial={false}>
+                {coordinators.map((coordinator, index) => (
+                  <motion.div
+                    key={coordinator.id}
+                    initial={{ opacity: 0, y: -8, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                    exit={{ opacity: 0, y: -8, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
                   >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          </div>
+                    <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                      <div className="mt-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-blue-600 shadow-sm">
+                        {index + 1}
+                      </div>
+
+                      <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold text-slate-600">
+                            <User size={11} className="mr-1 inline" />
+                            Name *
+                          </Label>
+                          <Input
+                            value={coordinator.name}
+                            onChange={(event) =>
+                              updateCoordinator(coordinator.id, 'name', event.target.value)
+                            }
+                            placeholder="Full name"
+                            required={coordinators.some((item) => item.name.trim())}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold text-slate-600">
+                            <Phone size={11} className="mr-1 inline" />
+                            Phone
+                          </Label>
+                          <Input
+                            value={coordinator.phone}
+                            onChange={(event) =>
+                              updateCoordinator(coordinator.id, 'phone', event.target.value)
+                            }
+                            placeholder="+91 98765 43210"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeCoordinator(coordinator.id)}
+                        className="mt-2 rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                        title="Remove coordinator"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
+          </section>
         </div>
 
-        {/* ── Submit ── */}
         <Button
           type="submit"
           disabled={loading}
-          className="w-full h-12 rounded-xl font-bold text-base shadow-md hover:shadow-primary/30 transition-all hover:-translate-y-0.5 disabled:hover:translate-y-0"
+          className="h-12 w-full rounded-2xl text-base font-bold shadow-md transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:hover:translate-y-0"
         >
           {loading ? (
-            <><Loader2 size={16} className="animate-spin mr-2" />Creating Event…</>
+            <>
+              <Loader2 size={16} className="mr-2 animate-spin" />
+              Creating event...
+            </>
           ) : (
             'Create Event'
           )}
@@ -372,15 +428,3 @@ export default function CreateEventPanel() {
     </div>
   );
 }
-
-// ─── Field wrapper ────────────────────────────────────────────────────────────
-
-function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={htmlFor} className="text-sm font-semibold text-slate-700">{label}</Label>
-      {children}
-    </div>
-  );
-}
-

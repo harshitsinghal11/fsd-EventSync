@@ -115,18 +115,15 @@ function initC2Tracking(): void {
  * preferences in localStorage and controls whether analytics scripts are loaded.
  */
 export default function CookieBanner() {
-  const [showBanner, setShowBanner] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(function checkConsent() {
-    if (typeof window === 'undefined') return;
+  const [{ isLoaded, showBanner }, setBannerState] = useState(() => {
+    if (typeof window === 'undefined') {
+      return { isLoaded: false, showBanner: false };
+    }
 
     const consentData = localStorage.getItem(COOKIE_CONSENT_KEY);
 
     if (!consentData) {
-      setShowBanner(true);
-      setIsLoaded(true);
-      return;
+      return { isLoaded: true, showBanner: true };
     }
 
     try {
@@ -135,28 +132,28 @@ export default function CookieBanner() {
 
       if (daysSinceConsent > COOKIE_CONSENT_EXPIRES_DAYS) {
         localStorage.removeItem(COOKIE_CONSENT_KEY);
-        setShowBanner(true);
+        return { isLoaded: true, showBanner: true };
       } else if (consent.analytics) {
         initC2Tracking();
       }
     } catch {
       localStorage.removeItem(COOKIE_CONSENT_KEY);
-      setShowBanner(true);
+      return { isLoaded: true, showBanner: true };
     }
 
-    setIsLoaded(true);
-  }, []);
+    return { isLoaded: true, showBanner: false };
+  });
 
   function saveConsent(analytics: boolean) {
     localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({ analytics, timestamp: Date.now() }));
     if (analytics) initC2Tracking();
-    setShowBanner(false);
+    setBannerState({ isLoaded: true, showBanner: false });
   }
 
   function revokeConsent() {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(COOKIE_CONSENT_KEY);
-    setShowBanner(true);
+    setBannerState({ isLoaded: true, showBanner: true });
   }
 
   useEffect(function exposeRevokeFunction() {

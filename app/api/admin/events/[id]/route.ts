@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdminApiSession } from '@/lib/server/auth';
 import { createSupabaseClient } from '@/lib/server/supabase';
 
 type RouteContext = {
@@ -23,11 +24,29 @@ type EventUpdatePayload = {
   coordinators?: unknown;
 };
 
+function isCoordinatorConstraintError(error: { code?: string; message?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  return (
+    error.code === '23503' ||
+    error.message?.toLowerCase().includes('foreign key') === true ||
+    error.message?.toLowerCase().includes('event_coordinators') === true
+  );
+}
+
 /**
  * PUT /api/admin/events/:id
  */
 export async function PUT(request: Request, { params }: RouteContext) {
   try {
+    const authResult = await requireAdminApiSession();
+
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const { id } = await params;
 
     if (!id) {
@@ -143,6 +162,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
  */
 export async function DELETE(_request: Request, { params }: RouteContext) {
   try {
+    const authResult = await requireAdminApiSession();
+
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const { id } = await params;
 
     if (!id) {
@@ -158,14 +183,48 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       );
     }
 
-    const { error } = await supabase.from('events').delete().eq('id', id);
+    const firstDeleteAttempt = await supabase.from('events').delete().eq('id', id);
 
-    if (error) {
-      console.error('[admin/events DELETE] Supabase error:', error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!firstDeleteAttempt.error) {
+      return NextResponse.json({ success: true, cleanupStrategy: 'direct-delete' });
     }
 
-    return NextResponse.json({ success: true });
+    if (!isCoordinatorConstraintError(firstDeleteAttempt.error)) {
+      console.error('[admin/events DELETE] Supabase error:', firstDeleteAttempt.error.message);
+      return NextResponse.json({ error: firstDeleteAttempt.error.message }, { status: 500 });
+    }
+
+    const { error: coordinatorDeleteError } = await supabase
+      .from('event_coordinators')
+      .delete()
+      .eq('event_id', id);
+
+    if (coordinatorDeleteError) {
+      console.error(
+        '[admin/events DELETE] coordinator cleanup error:',
+        coordinatorDeleteError.message
+      );
+      return NextResponse.json(
+        {
+          error: `Failed to remove coordinators before deleting the event: ${coordinatorDeleteError.message}`,
+        },
+        { status: 500 }
+      );
+    }
+
+    const retryDeleteAttempt = await supabase.from('events').delete().eq('id', id);
+
+    if (retryDeleteAttempt.error) {
+      console.error('[admin/events DELETE] retry error:', retryDeleteAttempt.error.message);
+      return NextResponse.json(
+        {
+          error: `Coordinators were removed, but deleting the event still failed: ${retryDeleteAttempt.error.message}`,
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, cleanupStrategy: 'manual-coordinator-cleanup' });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }

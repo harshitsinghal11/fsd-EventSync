@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { EVENT_CATEGORY_OPTIONS } from '@/lib/event-categories';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,12 @@ function perksToString(perks: string[] | string | undefined): string {
   if (Array.isArray(perks)) return perks.join(', ');
   return perks;
 }
+
+const textareaClassName =
+  'w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10';
+
+const selectClassName =
+  'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10';
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -257,7 +264,7 @@ export default function ManageEventsPanel() {
   );
 
   return (
-    <div className="flex gap-6 items-start max-w-5xl mx-auto w-full">
+    <div className="mx-auto flex w-full max-w-6xl items-start gap-6">
 
       {/* ── Events table ── */}
       <div className={`flex-1 min-w-0 transition-all duration-300 ${editId ? 'hidden xl:block' : ''}`}>
@@ -267,20 +274,20 @@ export default function ManageEventsPanel() {
           </p>
           <button
             onClick={load}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-700 font-semibold transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-800"
           >
             <RefreshCw size={12} /> Refresh
           </button>
         </div>
 
         {events.length === 0 ? (
-          <div className="text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-100">
+          <div className="rounded-[28px] border border-slate-200 bg-white py-16 text-center text-slate-400 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.35)]">
             <CalendarDays size={32} className="mx-auto mb-3 opacity-40" />
             <p className="font-semibold">No events yet</p>
             <p className="text-sm mt-1">Create your first event using the sidebar.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_20px_45px_-30px_rgba(15,23,42,0.35)]">
             <table className="w-full">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
@@ -351,9 +358,9 @@ export default function ManageEventsPanel() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 32 }}
             transition={{ duration: 0.22, ease: 'easeOut' as const }}
-            className="w-full xl:w-[440px] shrink-0"
+            className="w-full shrink-0 xl:sticky xl:top-8 xl:w-[440px]"
           >
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_20px_45px_-30px_rgba(15,23,42,0.35)]">
               {/* Drawer header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
                 <div className="flex items-center gap-2">
@@ -422,7 +429,7 @@ export default function ManageEventsPanel() {
                       value={editForm.description}
                       onChange={setField('description')}
                       rows={3}
-                      className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                      className={textareaClassName}
                     />
                   </DrawerField>
 
@@ -449,10 +456,10 @@ export default function ManageEventsPanel() {
                       id="ed-category"
                       value={editForm.category}
                       onChange={setField('category')}
-                      className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9"
+                      className={selectClassName}
                     >
                       <option value="">Select category</option>
-                      {['Technical', 'Cultural', 'Sports', 'Academic', 'Workshop', 'Other'].map((c) => (
+                      {EVENT_CATEGORY_OPTIONS.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
@@ -558,7 +565,7 @@ export default function ManageEventsPanel() {
                     className="w-full h-10 rounded-xl font-bold text-sm mt-2"
                   >
                     {editLoading
-                      ? <><Loader2 size={14} className="animate-spin mr-2" />Saving…</>
+                      ? <><Loader2 size={14} className="animate-spin mr-2" />Saving...</>
                       : <><Save size={14} className="mr-2" />Save Changes</>}
                   </Button>
                 </form>

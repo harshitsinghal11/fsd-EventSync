@@ -93,7 +93,7 @@ export default function DemoContent() {
             Get in Touch
           </h2>
           <p className="text-center text-gray-600 mb-4 text-sm">
-            Have questions? We'd love to hear from you.
+            Have questions? We&apos;d love to hear from you.
           </p>
           
           <form className="space-y-3">
@@ -106,7 +106,6 @@ export default function DemoContent() {
                   type="text"
                   id="name"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
-                  style={{ focusRingColor: `hsl(var(--ring))` } as any}
                   placeholder="Your name"
                 />
               </div>
@@ -119,7 +118,6 @@ export default function DemoContent() {
                   type="email"
                   id="email"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
-                  style={{ focusRingColor: `hsl(var(--ring))` } as any}
                   placeholder="your@email.com"
                 />
               </div>
@@ -133,7 +131,6 @@ export default function DemoContent() {
                 id="message"
                 rows={3}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all resize-none"
-                style={{ focusRingColor: `hsl(var(--ring))` } as any}
                 placeholder="Your message..."
               ></textarea>
             </div>
@@ -171,4 +168,3 @@ export default function DemoContent() {
     </div>
   )
 }
-

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { buildAdminSession, hasAdminAccess, setAdminSessionCookie } from '@/lib/server/auth';
 import { createSupabaseClient } from '@/lib/server/supabase';
 
 type LoginPayload = {
@@ -97,15 +98,32 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({
-      session: {
-        id: userRow.id,
-        email: userRow.email,
-        name: userRow.name ?? userRow.full_name ?? userRow.username ?? null,
-        role: userRow.role,
-        loginAt: new Date().toISOString(),
-      },
+    const role = typeof userRow.role === 'string' ? userRow.role : '';
+
+    if (!hasAdminAccess(role)) {
+      return NextResponse.json(
+        { error: 'This account does not have admin access.' },
+        { status: 403 }
+      );
+    }
+
+    const session = buildAdminSession({
+      id: String(userRow.id ?? ''),
+      email: String(userRow.email ?? email),
+      name:
+        typeof userRow.name === 'string'
+          ? userRow.name
+          : typeof userRow.full_name === 'string'
+            ? userRow.full_name
+            : typeof userRow.username === 'string'
+              ? userRow.username
+              : null,
+      role,
     });
+
+    const response = NextResponse.json({ session });
+    setAdminSessionCookie(response, session);
+    return response;
   } catch (error) {
     console.error('[login] Unexpected error:', error);
     return NextResponse.json(

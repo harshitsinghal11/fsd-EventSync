@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdminApiSession } from '@/lib/server/auth';
 import { createSupabaseClient } from '@/lib/server/supabase';
 
 type RouteContext = {
@@ -21,6 +22,12 @@ type OpportunityUpdatePayload = {
  */
 export async function PUT(request: Request, { params }: RouteContext) {
   try {
+    const authResult = await requireAdminApiSession();
+
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const { id } = await params;
 
     if (!id) {
@@ -81,6 +88,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
  */
 export async function DELETE(_request: Request, { params }: RouteContext) {
   try {
+    const authResult = await requireAdminApiSession();
+
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const { id } = await params;
 
     if (!id) {

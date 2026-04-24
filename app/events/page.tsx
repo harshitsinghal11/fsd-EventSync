@@ -6,6 +6,13 @@ import {
     Search, MapPin, Calendar, ChevronRight,
     Loader2, AlertCircle, CalendarDays, X,
 } from 'lucide-react';
+import {
+    EVENT_CATEGORY_BACKGROUNDS,
+    EVENT_CATEGORY_COLORS,
+    EVENT_CATEGORY_OPTIONS,
+    type EventCategory,
+    normalizeEventCategory,
+} from '@/lib/event-categories';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,29 +27,9 @@ interface Event {
     duration?: string;
 }
 
-type Category = 'All' | 'Academic' | 'Social' | 'Sports' | 'Cultural' | 'Tech' | 'Workshop' | 'Other';
+type Category = 'All' | EventCategory;
 
-const CATEGORIES: Category[] = ['All', 'Academic', 'Cultural', 'Sports', 'Tech', 'Workshop', 'Social', 'Other'];
-
-const CATEGORY_COLORS: Record<string, string> = {
-    Tech: 'bg-blue-100 text-blue-700',
-    Academic: 'bg-green-100 text-green-700',
-    Social: 'bg-pink-100 text-pink-700',
-    Sports: 'bg-orange-100 text-orange-700',
-    Cultural: 'bg-purple-100 text-purple-700',
-    Workshop: 'bg-cyan-100 text-cyan-700',
-    Other: 'bg-slate-100 text-slate-600',
-};
-
-const CATEGORY_BG: Record<string, string> = {
-    Tech: 'from-blue-800 to-blue-900',
-    Academic: 'from-green-800 to-green-900',
-    Social: 'from-pink-800 to-pink-900',
-    Sports: 'from-orange-800 to-orange-900',
-    Cultural: 'from-purple-800 to-purple-900',
-    Workshop: 'from-cyan-800 to-cyan-900',
-    Other: 'from-slate-700 to-slate-900',
-};
+const CATEGORIES: Category[] = ['All', ...EVENT_CATEGORY_OPTIONS];
 
 // Date filter options
 type DateFilter = 'all' | 'today' | 'this-week' | 'this-month' | 'upcoming';
@@ -139,7 +126,8 @@ export default function EventsPage() {
                 (ev.venue ?? '').toLowerCase().includes(q);
 
             const matchCategory =
-                activeCategory === 'All' || ev.category === activeCategory;
+                activeCategory === 'All' ||
+                normalizeEventCategory(ev.category) === activeCategory;
 
             const matchDate = matchesDateFilter(ev.date, dateFilter);
 
@@ -308,67 +296,71 @@ export default function EventsPage() {
                             </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filtered.map((event, i) => (
-                                    <motion.div
-                                        key={event.id}
-                                        initial="hidden"
-                                        whileInView="visible"
-                                        viewport={{ once: true }}
-                                        custom={i}
-                                        variants={fadeUp}
-                                        whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                                        className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden group border border-slate-100"
-                                    >
-                                        {/* Card banner */}
-                                        <div
-                                            className={`h-40 bg-gradient-to-br ${CATEGORY_BG[event.category ?? ''] ?? 'from-slate-700 to-slate-900'
-                                                } relative`}
+                                {filtered.map((event, i) => {
+                                    const category = normalizeEventCategory(event.category);
+
+                                    return (
+                                        <motion.div
+                                            key={event.id}
+                                            initial="hidden"
+                                            whileInView="visible"
+                                            viewport={{ once: true }}
+                                            custom={i}
+                                            variants={fadeUp}
+                                            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                                            className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden group border border-slate-100"
                                         >
-                                            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_50%,white,transparent)]" />
-                                            {event.category && (
-                                                <div className="absolute top-3 left-3">
-                                                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${CATEGORY_COLORS[event.category] ?? 'bg-slate-100 text-slate-600'}`}>
-                                                        {event.category}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Card body */}
-                                        <div className="p-5">
-                                            <h3 className="font-bold text-slate-900 text-lg mb-2 group-hover:text-primary transition-colors line-clamp-1">
-                                                {event.title}
-                                            </h3>
-
-                                            {event.date && (
-                                                <div className="flex items-center gap-1.5 text-sm text-slate-500 mb-1">
-                                                    <Calendar size={13} className="shrink-0" />
-                                                    <span>{event.date}</span>
-                                                </div>
-                                            )}
-
-                                            {event.venue && (
-                                                <div className="flex items-center gap-1.5 text-sm text-slate-500 mb-3">
-                                                    <MapPin size={13} className="shrink-0" />
-                                                    <span className="line-clamp-1">{event.venue}</span>
-                                                </div>
-                                            )}
-
-                                            {event.description && (
-                                                <p className="text-sm text-slate-600 line-clamp-2 mb-4">
-                                                    {event.description}
-                                                </p>
-                                            )}
-
-                                            <Link
-                                                href={`/events/${event.id}`}
-                                                className="inline-flex items-center gap-1 text-sm font-semibold text-blue-400 hover:gap-2 transition-all"
+                                            {/* Card banner */}
+                                            <div
+                                                className={`h-40 bg-gradient-to-br ${EVENT_CATEGORY_BACKGROUNDS[category ?? ''] ?? 'from-slate-700 to-slate-900'
+                                                    } relative`}
                                             >
-                                                View Details <ChevronRight size={14} />
-                                            </Link>
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_50%,white,transparent)]" />
+                                                {category && (
+                                                    <div className="absolute top-3 left-3">
+                                                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${EVENT_CATEGORY_COLORS[category] ?? 'bg-slate-100 text-slate-600'}`}>
+                                                            {category}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Card body */}
+                                            <div className="p-5">
+                                                <h3 className="font-bold text-slate-900 text-lg mb-2 group-hover:text-primary transition-colors line-clamp-1">
+                                                    {event.title}
+                                                </h3>
+
+                                                {event.date && (
+                                                    <div className="flex items-center gap-1.5 text-sm text-slate-500 mb-1">
+                                                        <Calendar size={13} className="shrink-0" />
+                                                        <span>{event.date}</span>
+                                                    </div>
+                                                )}
+
+                                                {event.venue && (
+                                                    <div className="flex items-center gap-1.5 text-sm text-slate-500 mb-3">
+                                                        <MapPin size={13} className="shrink-0" />
+                                                        <span className="line-clamp-1">{event.venue}</span>
+                                                    </div>
+                                                )}
+
+                                                {event.description && (
+                                                    <p className="text-sm text-slate-600 line-clamp-2 mb-4">
+                                                        {event.description}
+                                                    </p>
+                                                )}
+
+                                                <Link
+                                                    href={`/events/${event.id}`}
+                                                    className="inline-flex items-center gap-1 text-sm font-semibold text-blue-400 hover:gap-2 transition-all"
+                                                >
+                                                    View Details <ChevronRight size={14} />
+                                                </Link>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
                         </>
                     )}

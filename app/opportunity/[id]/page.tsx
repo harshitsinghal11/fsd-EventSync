@@ -5,17 +5,15 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion } from 'motion/react';
 import {
+  AlertCircle,
+  ArrowLeft,
   Building2,
   Clock,
-  ArrowLeft,
-  AlertCircle,
-  Mail,
-  Phone,
-  MessageSquare,
   ExternalLink,
+  Mail,
+  MessageSquare,
+  Phone,
 } from 'lucide-react';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Opportunity {
   id: string;
@@ -27,6 +25,7 @@ interface Opportunity {
   type?: string;
   stipend?: string;
   eligibility?: string;
+  registration_link?: string | null;
   [key: string]: unknown;
 }
 
@@ -36,26 +35,20 @@ interface FetchState {
   error: string | null;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const typeColors: Record<string, string> = {
-  Research:   'bg-teal-100 text-teal-700',
+  Research: 'bg-teal-100 text-teal-700',
   Leadership: 'bg-indigo-100 text-indigo-700',
-  Volunteer:  'bg-rose-100 text-rose-700',
+  Volunteer: 'bg-rose-100 text-rose-700',
   Internship: 'bg-amber-100 text-amber-700',
 };
 
 const typeBg: Record<string, string> = {
-  Research:   'from-teal-700 to-teal-950',
+  Research: 'from-teal-700 to-teal-950',
   Leadership: 'from-indigo-700 to-indigo-950',
-  Volunteer:  'from-rose-700 to-rose-950',
+  Volunteer: 'from-rose-700 to-rose-950',
   Internship: 'from-amber-700 to-amber-950',
 };
 
-/**
- * Detect the type of contact info and return an appropriate icon + href.
- * Handles email, phone, URL, or plain text.
- */
 function parseContactInfo(raw: string): {
   icon: React.ElementType;
   label: string;
@@ -74,18 +67,15 @@ function parseContactInfo(raw: string): {
   return { icon: MessageSquare, label: trimmed, href: null };
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse bg-slate-200 rounded-lg ${className ?? ''}`} />;
+  return <div className={`animate-pulse rounded-lg bg-slate-200 ${className ?? ''}`} />;
 }
 
 function LoadingSkeleton() {
   return (
     <>
-      {/* Hero skeleton */}
       <section className="bg-slate-800 py-20">
-        <div className="container mx-auto px-4 space-y-4">
+        <div className="container mx-auto space-y-4 px-4">
           <Skeleton className="h-4 w-36 bg-slate-700" />
           <Skeleton className="h-6 w-24 bg-slate-700" />
           <Skeleton className="h-12 w-2/3 bg-slate-700" />
@@ -93,21 +83,18 @@ function LoadingSkeleton() {
         </div>
       </section>
 
-      {/* Body skeleton */}
-      <section className="py-12 bg-slate-50">
+      <section className="bg-slate-50 py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main */}
-            <div className="lg:col-span-2 space-y-4">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="space-y-4 lg:col-span-2">
               <Skeleton className="h-8 w-56" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-5/6" />
               <Skeleton className="h-4 w-4/6" />
-              <Skeleton className="h-4 w-full mt-2" />
+              <Skeleton className="mt-2 h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-12 w-36 mt-4" />
+              <Skeleton className="mt-4 h-12 w-36" />
             </div>
-            {/* Sidebar */}
             <div className="space-y-4">
               <Skeleton className="h-52 w-full" />
               <Skeleton className="h-24 w-full" />
@@ -119,20 +106,18 @@ function LoadingSkeleton() {
   );
 }
 
-// ─── Error State ──────────────────────────────────────────────────────────────
-
 function ErrorState({ message }: { message: string }) {
   return (
-    <section className="py-24 bg-slate-50 min-h-[60vh] flex items-center">
+    <section className="flex min-h-[60vh] items-center bg-slate-50 py-24">
       <div className="container mx-auto px-4 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-2xl mb-4">
+        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100">
           <AlertCircle size={28} className="text-red-500" />
         </div>
-        <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Couldn't load opportunity</h2>
-        <p className="text-slate-500 mb-6 max-w-sm mx-auto">{message}</p>
+        <h2 className="mb-2 text-2xl font-extrabold text-slate-900">Could not load opportunity</h2>
+        <p className="mx-auto mb-6 max-w-sm text-slate-500">{message}</p>
         <Link
           href="/opportunity"
-          className="inline-flex items-center gap-2 bg-primary text-white font-bold px-6 py-3 rounded-xl hover:bg-primary/90 transition-all"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-bold text-white transition-all hover:bg-primary/90"
         >
           <ArrowLeft size={16} /> Back to Opportunities
         </Link>
@@ -141,11 +126,8 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
 export default function OpportunityDetailPage() {
   const { id } = useParams<{ id: string }>();
-
   const [state, setState] = useState<FetchState>({
     opportunity: null,
     loading: true,
@@ -158,6 +140,7 @@ export default function OpportunityDetailPage() {
 
     async function load() {
       setState({ opportunity: null, loading: true, error: null });
+
       try {
         const res = await fetch(`/api/opportunities/${id}`);
         const json = await res.json();
@@ -169,134 +152,147 @@ export default function OpportunityDetailPage() {
         if (!cancelled) {
           setState({ opportunity: json.opportunity, loading: false, error: null });
         }
-      } catch (err) {
+      } catch (error) {
         if (!cancelled) {
-          setState({ opportunity: null, loading: false, error: String(err) });
+          setState({ opportunity: null, loading: false, error: String(error) });
         }
       }
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  const { opportunity: opp, loading, error } = state;
+  const { opportunity, loading, error } = state;
 
-  // ── Loading ──
   if (loading) return <LoadingSkeleton />;
+  if (error || !opportunity) {
+    return <ErrorState message={error ?? 'Opportunity not found.'} />;
+  }
 
-  // ── Error ──
-  if (error || !opp) return <ErrorState message={error ?? 'Opportunity not found.'} />;
-
-  // ── Resolved ──
-  const heroBg      = typeBg[opp.type ?? '']    ?? 'from-slate-800 to-slate-950';
-  const typeBadge   = typeColors[opp.type ?? ''] ?? 'bg-slate-100 text-slate-700';
-  const contact     = opp.contact_info ? parseContactInfo(String(opp.contact_info)) : null;
+  const heroBg = typeBg[opportunity.type ?? ''] ?? 'from-slate-800 to-slate-950';
+  const typeBadge = typeColors[opportunity.type ?? ''] ?? 'bg-slate-100 text-slate-700';
+  const contact = opportunity.contact_info
+    ? parseContactInfo(String(opportunity.contact_info))
+    : null;
+  const registrationLink =
+    typeof opportunity.registration_link === 'string'
+      ? opportunity.registration_link.trim()
+      : '';
+  const action = registrationLink
+    ? { href: registrationLink, label: 'Apply Now' }
+    : contact?.href
+      ? {
+          href: contact.href,
+          label:
+            contact.href.startsWith('mailto:') || contact.href.startsWith('tel:')
+              ? 'Contact Organizer'
+              : 'Open Contact',
+        }
+      : null;
 
   const sidebarItems = [
-    { icon: Building2, label: 'Organization', value: opp.organization },
-    { icon: Clock,     label: 'Deadline',     value: opp.deadline },
+    { icon: Building2, label: 'Organization', value: opportunity.organization },
+    { icon: Clock, label: 'Deadline', value: opportunity.deadline },
   ].filter((item) => Boolean(item.value));
 
   return (
     <>
-      <title>{opp.title} – EventSync</title>
-      <meta name="description" content={opp.description ?? `Details for ${opp.title}`} />
+      <title>{opportunity.title} - EventSync</title>
+      <meta
+        name="description"
+        content={opportunity.description ?? `Details for ${opportunity.title}`}
+      />
 
-      {/* ── Hero Banner ── */}
-      <section className={`bg-gradient-to-br ${heroBg} py-20 relative overflow-hidden`}>
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_20%_50%,white,transparent)]" />
-        <div className="container mx-auto px-4 relative z-10">
+      <section className={`relative overflow-hidden bg-gradient-to-br ${heroBg} py-20`}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,white,transparent)] opacity-10" />
+        <div className="container relative z-10 mx-auto px-4">
           <Link
             href="/opportunity"
-            className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium mb-6 transition-colors"
+            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-white/70 transition-colors hover:text-white"
           >
             <ArrowLeft size={16} /> Back to Opportunities
           </Link>
 
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            {opp.type && (
-              <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${typeBadge}`}>
-                {opp.type}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            {opportunity.type && (
+              <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${typeBadge}`}>
+                {opportunity.type}
               </span>
             )}
-            {opp.stipend && (
-              <span className="text-xs font-semibold text-green-300 bg-green-900/40 px-3 py-1.5 rounded-full">
-                {String(opp.stipend)}
+            {opportunity.stipend && (
+              <span className="rounded-full bg-green-900/40 px-3 py-1.5 text-xs font-semibold text-green-300">
+                {String(opportunity.stipend)}
               </span>
             )}
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-3 max-w-2xl leading-tight">
-            {opp.title}
+          <h1 className="mb-3 max-w-2xl text-4xl font-extrabold leading-tight text-white md:text-5xl">
+            {opportunity.title}
           </h1>
 
-          {opp.organization && (
-            <p className="text-white/70 text-lg flex items-center gap-2">
+          {opportunity.organization && (
+            <p className="flex items-center gap-2 text-lg text-white/70">
               <Building2 size={16} className="shrink-0" />
-              {String(opp.organization)}
+              {String(opportunity.organization)}
             </p>
           )}
         </div>
       </section>
 
-      {/* ── Body ── */}
-      <section className="py-12 bg-slate-50">
+      <section className="bg-slate-50 py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            {/* ── Main Column ── */}
-            <div className="lg:col-span-2 space-y-6">
-
-              {/* Description */}
-              {opp.description && (
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              {opportunity.description && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45 }}
-                  className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8"
+                  className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm"
                 >
-                  <h2 className="text-2xl font-extrabold text-slate-900 mb-5">
+                  <h2 className="mb-5 text-2xl font-extrabold text-slate-900">
                     About This Opportunity
                   </h2>
                   <div className="space-y-4">
-                    {String(opp.description)
+                    {String(opportunity.description)
                       .split('\n\n')
-                      .map((para, i) => (
-                        <p key={i} className="text-slate-600 leading-relaxed">
-                          {para}
+                      .map((paragraph, index) => (
+                        <p key={index} className="leading-relaxed text-slate-600">
+                          {paragraph}
                         </p>
                       ))}
                   </div>
                 </motion.div>
               )}
 
-              {/* Contact Info */}
               {contact && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45, delay: 0.08 }}
-                  className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8"
+                  className="rounded-2xl border border-slate-100 bg-white p-8 shadow-sm"
                 >
-                  <h2 className="text-xl font-extrabold text-slate-900 mb-5">Contact</h2>
-                  <div className="flex items-center gap-4 bg-slate-50 rounded-xl px-5 py-4 border border-slate-100">
-                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                  <h2 className="mb-5 text-xl font-extrabold text-slate-900">Contact</h2>
+                  <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50 px-5 py-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                       <contact.icon size={16} className="text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs text-slate-400 font-medium mb-0.5">Reach out via</p>
+                      <p className="mb-0.5 text-xs font-medium text-slate-400">Reach out via</p>
                       {contact.href ? (
                         <a
                           href={contact.href}
                           target={contact.href.startsWith('http') ? '_blank' : undefined}
-                          rel="noopener noreferrer"
-                          className="text-sm font-semibold text-primary hover:underline break-all"
+                          rel={contact.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                          className="break-all text-sm font-semibold text-primary hover:underline"
                         >
                           {contact.label}
                         </a>
                       ) : (
-                        <p className="text-sm font-semibold text-slate-800 break-all">
+                        <p className="break-all text-sm font-semibold text-slate-800">
                           {contact.label}
                         </p>
                       )}
@@ -305,34 +301,49 @@ export default function OpportunityDetailPage() {
                 </motion.div>
               )}
 
-              {/* CTA */}
-              <div className="pt-2">
-                <button className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white font-bold px-10 py-3.5 rounded-xl shadow-md hover:shadow-primary/30 transition-all hover:-translate-y-0.5">
-                  Apply Now
-                </button>
+              <div className="space-y-2 pt-2">
+                {action ? (
+                  <a
+                    href={action.href}
+                    target={action.href.startsWith('http') ? '_blank' : undefined}
+                    rel={action.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                    className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-10 py-3.5 font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-primary/30 md:w-auto"
+                  >
+                    {action.label}
+                  </a>
+                ) : (
+                  <>
+                    <button
+                      disabled
+                      className="w-full cursor-not-allowed rounded-xl bg-slate-300 px-10 py-3.5 font-bold text-slate-600 md:w-auto"
+                    >
+                      Application Unavailable
+                    </button>
+                    <p className="text-sm text-slate-500">
+                      No application or contact link has been added for this opportunity yet.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* ── Sidebar ── */}
             <div className="space-y-6">
-
-              {/* Key Details */}
               {sidebarItems.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.45, delay: 0.1 }}
-                  className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6"
+                  className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm"
                 >
-                  <h3 className="font-bold text-slate-900 text-lg mb-5">Details</h3>
+                  <h3 className="mb-5 text-lg font-bold text-slate-900">Details</h3>
                   <div className="space-y-4">
                     {sidebarItems.map(({ icon: Icon, label, value }) => (
                       <div key={label} className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                           <Icon size={14} className="text-primary" />
                         </div>
                         <div>
-                          <p className="text-xs text-slate-400 font-medium">{label}</p>
+                          <p className="text-xs font-medium text-slate-400">{label}</p>
                           <p className="text-sm font-semibold text-slate-800">{String(value)}</p>
                         </div>
                       </div>
@@ -341,37 +352,39 @@ export default function OpportunityDetailPage() {
                 </motion.div>
               )}
 
-              {/* Deadline urgency pill */}
-              {opp.deadline && (
+              {opportunity.deadline && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.45, delay: 0.18 }}
-                  className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-3"
+                  className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5"
                 >
-                  <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
                     <Clock size={16} className="text-amber-600" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-900">Application Deadline</p>
-                    <p className="text-sm text-amber-700 font-semibold mt-0.5">
-                      {String(opp.deadline)}
+                    <p className="mt-0.5 text-sm font-semibold text-amber-700">
+                      {String(opportunity.deadline)}
                     </p>
-                    <p className="text-xs text-slate-500 mt-1">Submit your application before this date.</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Submit your application before this date.
+                    </p>
                   </div>
                 </motion.div>
               )}
 
-              {/* Eligibility */}
-              {opp.eligibility && (
+              {opportunity.eligibility && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.45, delay: 0.24 }}
-                  className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6"
+                  className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm"
                 >
-                  <h3 className="font-bold text-slate-900 text-base mb-3">Eligibility</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">{String(opp.eligibility)}</p>
+                  <h3 className="mb-3 text-base font-bold text-slate-900">Eligibility</h3>
+                  <p className="text-sm leading-relaxed text-slate-600">
+                    {String(opportunity.eligibility)}
+                  </p>
                 </motion.div>
               )}
             </div>
@@ -381,4 +394,3 @@ export default function OpportunityDetailPage() {
     </>
   );
 }
-
