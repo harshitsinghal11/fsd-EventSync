@@ -310,20 +310,6 @@ export default function EventsPage() {
                                             whileHover={{ y: -4, transition: { duration: 0.2 } }}
                                             className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden group border border-slate-100"
                                         >
-                                            {/* Card banner */}
-                                            <div
-                                                className={`h-40 bg-gradient-to-br ${EVENT_CATEGORY_BACKGROUNDS[category ?? ''] ?? 'from-slate-700 to-slate-900'
-                                                    } relative`}
-                                            >
-                                                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_50%,white,transparent)]" />
-                                                {category && (
-                                                    <div className="absolute top-3 left-3">
-                                                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${EVENT_CATEGORY_COLORS[category] ?? 'bg-slate-100 text-slate-600'}`}>
-                                                            {category}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
 
                                             {/* Card body */}
                                             <div className="p-5">

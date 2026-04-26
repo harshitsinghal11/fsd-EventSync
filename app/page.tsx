@@ -29,6 +29,44 @@ interface OppRow {
   contact_info?: string;
 }
 
+function parseCalendarDate(dateStr?: string): Date | null {
+  if (!dateStr) {
+    return null;
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr.trim());
+
+  if (match) {
+    const [, year, month, day] = match;
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const fallback = new Date(dateStr);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+}
+
+function selectFeaturedEvents(allEvents: EventRow[]): EventRow[] {
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  return allEvents
+    .filter((event) => {
+      const eventDate = parseCalendarDate(event.date);
+      return eventDate !== null && eventDate >= startOfToday;
+    })
+    .sort((a, b) => {
+      const aDate = parseCalendarDate(a.date);
+      const bDate = parseCalendarDate(b.date);
+
+      if (!aDate && !bDate) return 0;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+      return aDate.getTime() - bDate.getTime();
+    })
+    .slice(0, 3);
+}
+
 // ─── Animation variants ───────────────────────────────────────────────────────
 
 const fadeUp = {
@@ -115,8 +153,8 @@ export default function HomePage() {
       if (!res.ok) throw new Error(json.error ?? 'Failed to load events.');
       const all: EventRow[] = json.events ?? [];
       setTotalEvents(all.length);
-      // Show up to 3 most recent (already sorted by date asc from API; take last 3 for "upcoming")
-      setEvents(all.slice(0, 3));
+      // Highlight the next 3 upcoming events on the homepage.
+      setEvents(selectFeaturedEvents(all));
     } catch (err) {
       setEventsError(String(err).replace('Error: ', ''));
     } finally {
@@ -238,9 +276,9 @@ export default function HomePage() {
       </section>
 
       {/* ── Stats (live counts) ── */}
-      <section className="bg-primary">
+      <section className="bg-[#1447E6]">
         <div className="container mx-auto px-4 py-10">
-          <div className="grid grid-cols-3 gap-6 text-center">
+          <div className="grid grid-cols-2 gap-6 text-center">
             {/* Events count */}
             <div className="flex flex-col items-center gap-1">
               <CalendarDays size={20} className="text-white/70 mb-1" />
@@ -265,13 +303,6 @@ export default function HomePage() {
                 </span>
               )}
               <span className="text-sm font-medium text-white/70">Opportunities</span>
-            </div>
-
-            {/* Students — static (no users table count needed) */}
-            <div className="flex flex-col items-center gap-1">
-              <Users size={20} className="text-white/70 mb-1" />
-              <span className="text-3xl md:text-4xl font-extrabold text-white">10K+</span>
-              <span className="text-sm font-medium text-white/70">Students</span>
             </div>
           </div>
         </div>
@@ -300,8 +331,14 @@ export default function HomePage() {
             ) : events.length === 0 ? (
               <div className="col-span-3 text-center py-16 text-slate-400">
                 <CalendarDays size={32} className="mx-auto mb-3 opacity-40" />
-                <p className="font-semibold">No events yet</p>
-                <p className="text-sm mt-1">Check back soon for upcoming campus events.</p>
+                <p className="font-semibold">
+                  {totalEvents && totalEvents > 0 ? 'No upcoming events right now' : 'No events yet'}
+                </p>
+                <p className="text-sm mt-1">
+                  {totalEvents && totalEvents > 0
+                    ? 'Browse the events page for older listings while new events are added.'
+                    : 'Check back soon for upcoming campus events.'}
+                </p>
               </div>
             ) : (
               events.map((event, i) => (
@@ -445,4 +482,3 @@ export default function HomePage() {
     </>
   );
 }
-

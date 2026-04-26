@@ -447,12 +447,13 @@ export default function ManageOpportunitiesPanel() {
                   </div>
 
                   {/* Contact Info */}
-                  <DrawerField label="Contact Info" htmlFor="ed-op-contact">
+                  <DrawerField label="Contact Info *" htmlFor="ed-op-contact">
                     <Input
                       id="ed-op-contact"
                       value={editForm.contact_info}
                       onChange={setField('contact_info')}
                       placeholder="Email, phone, or URL"
+                      required
                       className="h-9 text-sm rounded-xl"
                     />
                   </DrawerField>

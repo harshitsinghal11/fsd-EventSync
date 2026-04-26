@@ -83,6 +83,7 @@ export default function ManageEventsPanel() {
   const [editLoading, setEditLoading] = useState(false);
   const [editFetching, setEditFetching] = useState(false);
   const [editSuccess, setEditSuccess]   = useState(false);
+  const [editWarning, setEditWarning]   = useState<string | null>(null);
   const [editError, setEditError]       = useState<string | null>(null);
 
   // ── Load list ──────────────────────────────────────────────────────────────
@@ -128,6 +129,7 @@ export default function ManageEventsPanel() {
     setEditId(id);
     setEditFetching(true);
     setEditSuccess(false);
+    setEditWarning(null);
     setEditError(null);
     setEditForm(EMPTY_EDIT);
 
@@ -166,6 +168,7 @@ export default function ManageEventsPanel() {
     setEditId(null);
     setEditForm(EMPTY_EDIT);
     setEditSuccess(false);
+    setEditWarning(null);
     setEditError(null);
   }
 
@@ -175,12 +178,16 @@ export default function ManageEventsPanel() {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       setEditForm((f) => ({ ...f, [field]: e.target.value }));
       setEditSuccess(false);
+      setEditWarning(null);
       setEditError(null);
     };
   }
 
   function addCoord() {
     setEditForm((f) => ({ ...f, coordinators: [...f.coordinators, newCoord()] }));
+    setEditSuccess(false);
+    setEditWarning(null);
+    setEditError(null);
   }
 
   function updateCoord(localId: string, field: 'name' | 'phone', value: string) {
@@ -190,6 +197,9 @@ export default function ManageEventsPanel() {
         c.localId === localId ? { ...c, [field]: value } : c,
       ),
     }));
+    setEditSuccess(false);
+    setEditWarning(null);
+    setEditError(null);
   }
 
   function removeCoord(localId: string) {
@@ -197,6 +207,9 @@ export default function ManageEventsPanel() {
       ...f,
       coordinators: f.coordinators.filter((c) => c.localId !== localId),
     }));
+    setEditSuccess(false);
+    setEditWarning(null);
+    setEditError(null);
   }
 
   // ── Submit edit ────────────────────────────────────────────────────────────
@@ -206,6 +219,7 @@ export default function ManageEventsPanel() {
     if (!editId) return;
     setEditLoading(true);
     setEditSuccess(false);
+    setEditWarning(null);
     setEditError(null);
 
     try {
@@ -226,6 +240,10 @@ export default function ManageEventsPanel() {
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Update failed.');
+
+      if (json.warning) {
+        setEditWarning(json.warning);
+      }
 
       // Refresh the title in the list
       setEvents((prev) =>
@@ -403,6 +421,19 @@ export default function ManageEventsPanel() {
                         </div>
                       </motion.div>
                     )}
+                    {editWarning && (
+                      <motion.div
+                        key="warn"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-medium text-amber-700">
+                          Coordinator sync warning: {editWarning}
+                        </div>
+                      </motion.div>
+                    )}
                     {editError && (
                       <motion.div
                         key="err"
@@ -434,8 +465,8 @@ export default function ManageEventsPanel() {
                   </DrawerField>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <DrawerField label="Date" htmlFor="ed-date">
-                      <Input id="ed-date" type="date" value={editForm.date} onChange={setField('date')} className="h-9 text-sm rounded-xl" />
+                    <DrawerField label="Date *" htmlFor="ed-date">
+                      <Input id="ed-date" type="date" value={editForm.date} onChange={setField('date')} required className="h-9 text-sm rounded-xl" />
                     </DrawerField>
                     <DrawerField label="Time" htmlFor="ed-time">
                       <Input id="ed-time" type="time" value={editForm.time} onChange={setField('time')} className="h-9 text-sm rounded-xl" />

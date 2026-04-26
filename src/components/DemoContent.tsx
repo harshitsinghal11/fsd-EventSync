@@ -1,10 +1,3 @@
-/**
- * Demo Content Component
- * 
- * Showcases theme-aware design elements including hero section, features, and contact form.
- * Uses CSS custom properties for dynamic theming.
- * This component is designed to be easily replaced when building actual site content.
- */
 export default function DemoContent() {
   return (
     <div className="min-h-screen">

@@ -1,49 +1,87 @@
-# EventSync Project Documentation
+# EventSync Documentation
 
-## 1. Overview
-**EventSync** is a modern, responsive web application designed as a centralised "Campus Event Hub". It allows students to discover campus events (technical, cultural, sports, academic, etc.), register for them, and stay informed about various opportunities like internships, volunteer roles, and leadership positions. 
+Last updated: 2026-04-27
 
-The application provides a seamless discovery experience on the frontend while enabling administrators to manage the events and opportunities via a secured dashboard.
+## Summary
 
-## 2. Technology Stack
-- **Framework**: Next.js (App Router) version 15/16 (utilises React 19).
-- **Styling**: Tailwind CSS v4, integrated with custom colour tokens and utility classes.
-- **UI Components & Animation**: Radix UI (for accessible unstyled primitives like menus, dialogs, accordions), `lucide-react` (icons), and `motion/react` (Framer Motion v12) for fluid, dynamic micro-interactions.
-- **Backend/Database**: Supabase (PostgreSQL). Stores events, opportunities, and user data.
-- **Form Handling**: Custom, coupled with standard HTML form behaviour using React state.
-- **Authentication**: Basic session management wrapper around typical JWT/Cookie mechanisms (likely integrated with Supabase Auth).
+EventSync is a campus discovery application for surfacing events and opportunities to students while giving admins a protected dashboard for CRUD operations. The current product is strongest in public discovery, admin content management, and API-connected detail pages.
 
-## 3. Architecture & Routing
-The application is structured using Next.js App Router (`/app`):
-- `app/page.tsx`: The Hero landing page with dynamic counters and featured feeds.
-- `app/events/...`: Display pages for viewing a list of all events and comprehensive detail pages.
-- `app/opportunity/...`: Display pages for viewing aggregated opportunities and their specific detail pages.
-- `app/admin/...`: The admin dashboard interface housing various sections (Create Event, Manage Events, Create Opportunity).
-- `app/auth/...`: Authentication pages (Login, Signup).
-- `app/api/...`: Next.js REST API routes that communicate safely with Supabase:
-  - `/api/events` & `/api/events/[id]`
-  - `/api/opportunities` & `/api/opportunity`
-  - `/api/admin/...` (Protected POST/PUT/DELETE commands).
+## Stack
 
-## 4. Current Features
-* **Dynamic Event & Opportunity Discovery**: Responsive cards with skeletons for loading states. Fast search and filter integrations (by title, category, and date).
-* **Detailed Views**: Fully fleshed-out single event/opportunity pages detailing descriptions, date/time, venue, duration, perks, organizational details, and linked coordinators.
-* **Admin Dashboard**: Contains dedicated UI panels for CRUD operations. It supports dynamic forms, such as adding multiple coordinators at once to an event schema.
-* **Component Reusability**: Well-structured `src/components` with Radix-based UI and dashboard blocks.
+- Framework: Next.js 16 App Router with React 19
+- Styling: Tailwind CSS 4
+- UI: Radix UI primitives, `lucide-react`, and `motion/react`
+- Data layer: Supabase
+- Language: TypeScript
 
-## 5. Identified Bugs & Inconsistent Logic
-During the analysis, the following structural patterns and bugs were detected:
+## App Surface
 
-1. **Nested / Redundant Admin Layout**:
-   - `app/admin/layout.tsx` exports a huge template component named `Dashboard` that isn't connected properly to the App Router's `{ children }` pattern. Simultaneously, `app/admin/page.tsx` (`AdminPage`) has its own built-in layout (rendering a sidebar (`<aside>`) and a `<main>` container). This creates visual conflicts, duplicated sidebar logic, or stranded layout files.
-2. **Missing Action Bindings**:
-   - Buttons like "Register Interest" on Event details and "Apply Now" on Opportunity details are purely visual. They must be linked to forms, emails, or Supabase endpoints to capture applicant intent.
-3. **API Endpoint Duplication**:
-   - There are separate directories for `/api/opportunity` and `/api/opportunities` referencing the exact same logic. While one acts as an alias, it is poor practice for maintenance.
-4. **Hardcoded UI Statistics**:
-   - The homepage shows "10K+ Students". This might have been a placeholder template element and ideally needs linking to actual statistics, or requires removal if it's purely generic.
-5. **Over-reliance on Client Components**:
-   - While interactive pages need `'use client'`, using it on generic list pages suppresses Next.js's powerful Server-side rendering (SSR) benefits.
+Public pages:
 
----
-*Created automatically during project analysis.*
+- `/`
+- `/events`
+- `/events/[id]`
+- `/opportunity`
+- `/opportunity/[id]`
+- `/auth/login`
+- `/auth/signup`
+
+Admin pages:
+
+- `/admin`
+
+Public APIs:
+
+- `/api/events`
+- `/api/events/[id]`
+- `/api/opportunities`
+- `/api/opportunities/[id]`
+- `/api/auth/login`
+- `/api/auth/logout`
+- `/api/auth/session`
+- `/api/auth/signup`
+- `/api/health`
+
+Protected admin APIs:
+
+- `/api/admin/events`
+- `/api/admin/events/[id]`
+- `/api/admin/opportunities`
+- `/api/admin/opportunities/[id]`
+
+## Data And Auth Model
+
+- Supabase access is created from `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, plus `SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+- Login and signup currently read and write directly against the `users` table.
+- Admin access is enforced with a signed HttpOnly cookie named `eventsync_admin_session`.
+- Session signing uses `SESSION_SECRET`, with fallbacks for `EVENTSYNC_SESSION_SECRET`, `AUTH_SESSION_SECRET`, or `JWT_SECRET`.
+- Admin APIs perform server-side role checks before allowing mutations.
+
+## Verified Capabilities
+
+- Landing page loads live event and opportunity data.
+- Homepage event curation now shows the next upcoming events instead of stale rows.
+- Events pages support search, category filtering, and date filtering.
+- Opportunity pages support search, type filtering, and deadline filtering.
+- Event detail pages show coordinators and registration links when present.
+- Opportunity detail pages resolve contact fallbacks from stored data.
+- Admin users can create, edit, and delete both events and opportunities.
+- Admin event flows support coordinator CRUD and partial-success warning display.
+- Backend validation now enforces required admin event and opportunity fields.
+- `npm run lint` and `npm run build` both pass in the current baseline.
+
+## Known Remaining Work
+
+See `TODO.md` for the authoritative open-work list. The main remaining areas are:
+
+- Database schema and migration tracking in-repo
+- Metadata cleanup across routes
+- Automated tests for core flows
+- Dependency cleanup for no-longer-used packages
+- Real student registration and application workflows
+- Password hashing, privileged-write separation, RLS, and a fuller role model
+
+## Source Of Truth
+
+- Open work: `TODO.md`
+- Verified completed work: `completed.md`

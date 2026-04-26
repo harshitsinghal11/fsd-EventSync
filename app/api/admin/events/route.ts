@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { requireAdminApiSession } from '@/lib/server/auth';
 import { createSupabaseClient } from '@/lib/server/supabase';
+import {
+  getOptionalTrimmedString,
+  getRequiredFieldsError,
+  getTrimmedString,
+} from '@/lib/server/validation';
 
 type CoordinatorInput = {
   name?: unknown;
@@ -39,10 +44,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
     }
 
-    const title = typeof payload.title === 'string' ? payload.title.trim() : '';
+    const title = getTrimmedString(payload.title);
+    const date = getTrimmedString(payload.date);
+    const requiredFieldsError = getRequiredFieldsError({ title, date });
 
-    if (!title) {
-      return NextResponse.json({ error: 'Title is required.' }, { status: 400 });
+    if (requiredFieldsError) {
+      return NextResponse.json({ error: requiredFieldsError }, { status: 400 });
     }
 
     const supabase = createSupabaseClient();
@@ -56,21 +63,21 @@ export async function POST(request: Request) {
 
     const perksText = Array.isArray(payload.perks)
       ? payload.perks.map((perk) => String(perk).trim()).filter(Boolean).join(', ')
-      : (payload.perks ?? null);
+      : getOptionalTrimmedString(payload.perks);
 
     const { data: event, error: eventError } = await supabase
       .from('events')
       .insert([
         {
           title,
-          description: payload.description ?? null,
-          date: payload.date ?? null,
-          time: payload.time ?? null,
-          venue: payload.venue ?? null,
-          duration: payload.duration ?? null,
-          category: payload.category ?? null,
-          perks: perksText,
-          registration_link: payload.registration_link ?? null,
+          description: getOptionalTrimmedString(payload.description),
+          date,
+          time: getOptionalTrimmedString(payload.time),
+          venue: getOptionalTrimmedString(payload.venue),
+          duration: getOptionalTrimmedString(payload.duration),
+          category: getOptionalTrimmedString(payload.category),
+          perks: perksText || null,
+          registration_link: getOptionalTrimmedString(payload.registration_link),
         },
       ])
       .select('id')
