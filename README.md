@@ -238,11 +238,7 @@ Contributions are welcome. Before opening a pull request:
 2. Run `npm run lint` and `npm run build` to verify your changes.
 3. Keep changes focused and aligned with the existing project conventions.
 
-## License
-
-This project is marked `private` in `package.json`. No open-source license file is included in the repository.
-
-## Contact (Optional)
+## Contact
 
 **Engineered by Harshit Singhal**
 
